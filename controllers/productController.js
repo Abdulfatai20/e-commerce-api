@@ -33,14 +33,14 @@ const addProduct = async (req, res) => {
     );
 
     const productData = {
-
+      name,
       description,
       category,
       price: Number(price),
       subCategory,
       bestseller: bestseller === "true" ? true : false,
       sizes: JSON.parse(sizes),
-      images: imagesUrl,
+      image: imagesUrl,
       date: Date.now(),
     };
 

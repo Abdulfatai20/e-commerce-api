@@ -1,37 +1,28 @@
 import jwt from "jsonwebtoken";
 
-const adminAuth = async (req, res, next) => {
+const userAuth = async (req, res, next) => {
   try {
     //Get the Header
     const authHeader = req.headers.authorization || req.headers.Authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         success: false,
-        message: "No token provided",
+        message: "Unauthorized",
       });
     }
 
     //Extract the token
     const token = authHeader.split(" ")[1];
 
-    // const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // if (decoded.role !== "admin") {
-    //   return res
-    //     .status(403)
-    //     .json({ success: false, message: "Not authorized" });
-    // }
-
     // Verify and decode it
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
       if (err) {
-        console.log("❌ Token verification failed");
-        return res
-          .status(403)
-          .json({ success: false, message: "Not authorized" }); //invalid token, 403 means forbidden
+        console.log("❌ Token verification failed here");
+        return res.status(403).json({ success: false, message: "Forbidden" }); //invalid token, 403 means forbidden
       }
       console.log("✅ Token verified:", decoded);
       //Store decoded info for later handlers
-      req.admin = decoded;
+      req.body.userId = decoded.id;
       next();
     });
   } catch (error) {
@@ -40,4 +31,4 @@ const adminAuth = async (req, res, next) => {
   }
 };
 
-export default adminAuth;
+export default userAuth;

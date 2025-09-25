@@ -3,42 +3,90 @@ import userModel from "../models/userModel.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-const createToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET);
-};
-
 // Route for user login
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         message: "Username and password are required",
       });
     }
 
-    const userExists = await userModel
+    const user = await userModel
       .findOne({ email })
       .collation({ locale: "en", strength: 2 })
       .exec();
-    if (!userExists) {
-      res.status(401).json({ success: false, message: "User doesn't exist" });
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "User doesn't exist" });
     }
-    const match = await bcrypt.compare(password, userExists.password);
-    if (match) {
-      const token = createToken(userExists._id);
-      res.json({ success: true, token });
-    } else {
-      res.status(401).json({ success: false, message: "Invalid credentials" });
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+      return res.status(401).json({ message: "Invalid credentials" });
     }
+
+    const accessToken = jwt.sign(
+      { id: user._id },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    const refreshToken = jwt.sign(
+      { id: user.id },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // Create secure cookie with refresh token
+    res.cookie("jwt", refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.json({ accessToken, success: true, message: "Login successful" });
   } catch (error) {
     console.log(error);
-    res.json({ success: false, message: error.message });
+    return res.json({ success: false, message: error.message });
   }
 };
 
-//Route for user register
+// Route for refresh
+const refresh = (req, res) => {
+  const cookies = req.cookies;
+
+  if (!cookies?.jwt) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const refreshToken = cookies.jwt;
+
+  jwt.verify(
+    refreshToken,
+    process.env.REFRESH_TOKEN_SECRET,
+    async (err, decoded) => {
+      if (err) return res.status(403).json({ message: "Forbidden" });
+
+      const user = await userModel.findById(decoded.id).exec();
+      if (!user) return res.status(401).json({ message: "Unauthorized" });
+
+      const accessToken = jwt.sign(
+        { id: user._id },
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: "15m" }
+      );
+
+      return res.json({ accessToken });
+    }
+  );
+};
+
+// Route for user register
 const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -48,51 +96,54 @@ const registerUser = async (req, res) => {
         .json({ success: false, message: "All fields are required" });
     }
 
-    // checking user already exists or not
-    const userExists = await userModel
+    const user = await userModel
       .findOne({ email })
       .collation({ locale: "en", strength: 2 })
       .lean()
       .exec();
-    if (userExists) {
+    if (user) {
       return res
         .status(409)
         .json({ success: false, message: "User already exists" });
     }
 
-    // validating email format & strong password
     if (!validator.isEmail(email)) {
-      return res.status(400).json({
-        success: false,
-        message: "Please enter a valid email",
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Please enter a valid email" });
     }
     if (password.length < 8) {
-      return res.status(400).json({
-        success: false,
-        message: "Please enter a strong password",
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Please enter a strong password" });
     }
 
-    // hashing user password
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const newUserObject = { name, email, password: hashedPassword };
 
-    // Create and store new user
-    const user = await userModel.create(newUserObject);
+    await userModel.create(newUserObject);
 
-    const token = createToken(user._id);
-    res.json({
+    return res.json({
       success: true,
       message: `New user ${name} created!`,
-      token,
     });
   } catch (error) {
     console.log(error);
-    res.json({ success: false, message: error.message });
+    return res.json({ success: false, message: error.message });
   }
 };
+
+// Route for logout
+const logout = (req, res) => {
+  const cookies = req.cookies;
+  if (!cookies?.jwt) {
+    return res.status(204).json({ message: "No cookie found" });
+  }
+
+  res.clearCookie("jwt", { httpOnly: true, sameSite: "None", secure: true });
+  return res.json({ message: "Cookie cleared" });
+};
+
 
 // Route for admin login
 const adminLogin = async (req, res) => {
@@ -102,17 +153,22 @@ const adminLogin = async (req, res) => {
       email === process.env.ADMIN_EMAIL &&
       password === process.env.ADMIN_PASSWORD
     ) {
-      const token = jwt.sign({ email, role: "admin" }, process.env.JWT_SECRET, {
-        expiresIn: "1h",
+      const token = jwt.sign(
+        { email, role: "admin" },
+        process.env.JWT_SECRET
+      );
+      return res.json({
+        success: true,
+        message: "Admin login successful",
+        token,
       });
-      res.json({ success: true, token });
     } else {
-      res.json({ success: false, message: "Invalid credentials" });
+      return res.json({ success: false, message: "Invalid credentials" });
     }
   } catch (error) {
     console.log(error);
-    res.json({ success: false, message: error.message });
+    return res.json({ success: false, message: error.message });
   }
 };
 
-export { loginUser, registerUser, adminLogin };
+export { loginUser, registerUser, adminLogin, refresh, logout };
