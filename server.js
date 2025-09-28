@@ -18,9 +18,6 @@ connectCloudinary();
 // CORS - handle this first
 app.use(cors(corsOptions));
 
-// Handle preflight OPTIONS requests
-app.options('*', cors(corsOptions));
-
 // Other middlewares
 app.use(express.json());
 app.use(cookieParser());
