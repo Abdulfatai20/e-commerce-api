@@ -1,12 +1,12 @@
 import express from "express";
 import {
   placeOrder,
-  placeOrderStripe,
   placeOrderRazorPay,
   allOrders,
   userOrders,
   updateStatus,
-  verifyStripe,
+  verifyPaystack,
+  placeOrderPayStack,
 } from "../controllers/orderController.js";
 import adminAuth from "../middleware/adminAuth.js";
 import userAuth from "../middleware/userAuth.js";
@@ -19,13 +19,13 @@ orderRouter.post("/status", adminAuth, updateStatus);
 
 // Payment Features
 orderRouter.post("/place", userAuth, placeOrder);
-orderRouter.post("/stripe", userAuth, placeOrderStripe);
+orderRouter.post("/paystack", userAuth, placeOrderPayStack);
 orderRouter.post("/razorpay", userAuth, placeOrderRazorPay);
 
 // User Feature
 orderRouter.post("/userOrders", userAuth, userOrders);
 
 // Verify payment
-orderRouter.post("/verifyStripe", userAuth, verifyStripe);
+orderRouter.post("/verifypayStack", userAuth, verifyPaystack);
 
 export default orderRouter;
