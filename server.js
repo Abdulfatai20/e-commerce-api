@@ -22,7 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:5174"], //  frontend and admin URLs
+    origin: ["https://forever-frontend-one-gamma.vercel.app", "https://forever-admin-one-chi.vercel.app"], //  frontend and admin URLs
     credentials: true, // allow cookies/authorization headers
   })
 );
