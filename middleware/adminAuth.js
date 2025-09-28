@@ -22,14 +22,14 @@ const adminAuth = async (req, res, next) => {
     // }
 
     // Verify and decode it
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
       if (err) {
-        console.log("❌ Token verification failed");
+        console.log("❌ Token verification failed for admin:", err.message);
         return res
           .status(403)
           .json({ success: false, message: "Not authorized" }); //invalid token, 403 means forbidden
       }
-      console.log("✅ Token verified:", decoded);
+      console.log("✅ Token verified for admin:", decoded);
       //Store decoded info for later handlers
       req.admin = decoded;
       next();

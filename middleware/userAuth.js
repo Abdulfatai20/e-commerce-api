@@ -17,10 +17,10 @@ const userAuth = async (req, res, next) => {
     // Verify and decode it
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
       if (err) {
-        console.log("❌ Token verification failed here");
+        console.log("❌ Token verification failed for user:", err.message);
         return res.status(403).json({ success: false, message: "Forbidden" }); //invalid token, 403 means forbidden
       }
-      console.log("✅ Token verified:", decoded);
+      console.log("✅ Token verified for user:", decoded);
       //Store decoded info for later handlers
       req.body.userId = decoded.id;
       next();

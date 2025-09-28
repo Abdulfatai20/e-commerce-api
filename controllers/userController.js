@@ -49,7 +49,11 @@ const loginUser = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    return res.json({ accessToken, success: true, message: "Login successful" });
+    return res.json({
+      accessToken,
+      success: true,
+      message: "Login successful",
+    });
   } catch (error) {
     console.log(error);
     return res.json({ success: false, message: error.message });
@@ -144,18 +148,17 @@ const logout = (req, res) => {
   return res.json({ message: "Cookie cleared" });
 };
 
-
 // Route for admin login
 const adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
     if (
-      email === process.env.ADMIN_EMAIL &&
-      password === process.env.ADMIN_PASSWORD
+      (email === process.env.ADMIN_EMAIL) &
+      (password === process.env.ADMIN_PASSWORD)
     ) {
       const token = jwt.sign(
         { email, role: "admin" },
-        process.env.JWT_SECRET
+        process.env.ACCESS_TOKEN_SECRET
       );
       return res.json({
         success: true,
